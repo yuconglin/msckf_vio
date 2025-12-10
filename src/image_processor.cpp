@@ -280,7 +280,7 @@ void ImageProcessor::stereoCallback(
   curr_features_ptr.reset(new GridFeatures());
   for (int code = 0; code <
       processor_config.grid_row*processor_config.grid_col; ++code) {
-    (*curr_features_ptr)[code] = vector<FeatureMetaData>(0);
+    (*curr_features_ptr)[code] = vector<FeatureMetaData>();
   }
 
   return;
@@ -313,11 +313,11 @@ void ImageProcessor::createImagePyramids() {
 void ImageProcessor::initializeFirstFrame() {
   // Size of each grid.
   const Mat& img = cam0_curr_img_ptr->image;
-  static int grid_height = img.rows / processor_config.grid_row;
-  static int grid_width = img.cols / processor_config.grid_col;
+  const int grid_height = img.rows / processor_config.grid_row;
+  const int grid_width = img.cols / processor_config.grid_col;
 
   // Detect new features on the frist image.
-  vector<KeyPoint> new_features(0);
+  vector<KeyPoint> new_features;
   detector_ptr->detect(img, new_features);
 
   // Find the stereo matched points for the newly
@@ -326,13 +326,13 @@ void ImageProcessor::initializeFirstFrame() {
   for (int i = 0; i < new_features.size(); ++i)
     cam0_points[i] = new_features[i].pt;
 
-  vector<cv::Point2f> cam1_points(0);
-  vector<unsigned char> inlier_markers(0);
+  vector<cv::Point2f> cam1_points;
+  vector<unsigned char> inlier_markers;
   stereoMatch(cam0_points, cam1_points, inlier_markers);
 
-  vector<cv::Point2f> cam0_inliers(0);
-  vector<cv::Point2f> cam1_inliers(0);
-  vector<float> response_inliers(0);
+  vector<cv::Point2f> cam0_inliers;
+  vector<cv::Point2f> cam1_inliers;
+  vector<float> response_inliers;
   for (int i = 0; i < inlier_markers.size(); ++i) {
     if (inlier_markers[i] == 0) continue;
     cam0_inliers.push_back(cam0_points[i]);
@@ -344,16 +344,16 @@ void ImageProcessor::initializeFirstFrame() {
   GridFeatures grid_new_features;
   for (int code = 0; code <
       processor_config.grid_row*processor_config.grid_col; ++code)
-      grid_new_features[code] = vector<FeatureMetaData>(0);
+      grid_new_features[code] = vector<FeatureMetaData>();
 
   for (int i = 0; i < cam0_inliers.size(); ++i) {
     const cv::Point2f& cam0_point = cam0_inliers[i];
     const cv::Point2f& cam1_point = cam1_inliers[i];
-    const float& response = response_inliers[i];
+    const float response = response_inliers[i];
 
-    int row = static_cast<int>(cam0_point.y / grid_height);
-    int col = static_cast<int>(cam0_point.x / grid_width);
-    int code = row*processor_config.grid_col + col;
+    const int row = static_cast<int>(cam0_point.y / grid_height);
+    const int col = static_cast<int>(cam0_point.x / grid_width);
+    const int code = row * processor_config.grid_col + col;
 
     FeatureMetaData new_feature;
     new_feature.response = response;
@@ -380,8 +380,6 @@ void ImageProcessor::initializeFirstFrame() {
       features_this_grid.back().lifetime = 1;
     }
   }
-
-  return;
 }
 
 void ImageProcessor::predictFeatureTracking(
@@ -405,7 +403,7 @@ void ImageProcessor::predictFeatureTracking(
   cv::Matx33f H = K * R_p_c * K.inv();
 
   for (int i = 0; i < input_pts.size(); ++i) {
-    cv::Vec3f p1(input_pts[i].x, input_pts[i].y, 1.0f);
+    const cv::Vec3f p1(input_pts[i].x, input_pts[i].y, 1.0f);
     cv::Vec3f p2 = H * p1;
     compensated_pts[i].x = p2[0] / p2[2];
     compensated_pts[i].y = p2[1] / p2[2];
@@ -416,9 +414,9 @@ void ImageProcessor::predictFeatureTracking(
 
 void ImageProcessor::trackFeatures() {
   // Size of each grid.
-  static int grid_height =
+  const int grid_height =
     cam0_curr_img_ptr->image.rows / processor_config.grid_row;
-  static int grid_width =
+  const int grid_width =
     cam0_curr_img_ptr->image.cols / processor_config.grid_col;
 
   // Compute a rough relative rotation which takes a vector
@@ -428,10 +426,10 @@ void ImageProcessor::trackFeatures() {
   integrateImuData(cam0_R_p_c, cam1_R_p_c);
 
   // Organize the features in the previous image.
-  vector<FeatureIDType> prev_ids(0);
-  vector<int> prev_lifetime(0);
-  vector<Point2f> prev_cam0_points(0);
-  vector<Point2f> prev_cam1_points(0);
+  vector<FeatureIDType> prev_ids;
+  vector<int> prev_lifetime;
+  vector<Point2f> prev_cam0_points;
+  vector<Point2f> prev_cam1_points;
 
   for (const auto& item : *prev_features_ptr) {
     for (const auto& prev_feature : item.second) {
@@ -450,8 +448,8 @@ void ImageProcessor::trackFeatures() {
   if (prev_ids.size() == 0) return;
 
   // Track features using LK optical flow method.
-  vector<Point2f> curr_cam0_points(0);
-  vector<unsigned char> track_inliers(0);
+  vector<Point2f> curr_cam0_points;
+  vector<unsigned char> track_inliers;
 
   predictFeatureTracking(prev_cam0_points,
       cam0_R_p_c, cam0_intrinsics, curr_cam0_points);
@@ -479,11 +477,11 @@ void ImageProcessor::trackFeatures() {
   }
 
   // Collect the tracked points.
-  vector<FeatureIDType> prev_tracked_ids(0);
-  vector<int> prev_tracked_lifetime(0);
-  vector<Point2f> prev_tracked_cam0_points(0);
-  vector<Point2f> prev_tracked_cam1_points(0);
-  vector<Point2f> curr_tracked_cam0_points(0);
+  vector<FeatureIDType> prev_tracked_ids;
+  vector<int> prev_tracked_lifetime;
+  vector<Point2f> prev_tracked_cam0_points;
+  vector<Point2f> prev_tracked_cam1_points;
+  vector<Point2f> curr_tracked_cam0_points;
 
   removeUnmarkedElements(
       prev_ids, track_inliers, prev_tracked_ids);
@@ -519,16 +517,16 @@ void ImageProcessor::trackFeatures() {
   // The stereo matching results are directly used in the RANSAC.
 
   // Step 1: stereo matching.
-  vector<Point2f> curr_cam1_points(0);
-  vector<unsigned char> match_inliers(0);
+  vector<Point2f> curr_cam1_points;
+  vector<unsigned char> match_inliers;
   stereoMatch(curr_tracked_cam0_points, curr_cam1_points, match_inliers);
 
-  vector<FeatureIDType> prev_matched_ids(0);
-  vector<int> prev_matched_lifetime(0);
-  vector<Point2f> prev_matched_cam0_points(0);
-  vector<Point2f> prev_matched_cam1_points(0);
-  vector<Point2f> curr_matched_cam0_points(0);
-  vector<Point2f> curr_matched_cam1_points(0);
+  vector<FeatureIDType> prev_matched_ids;
+  vector<int> prev_matched_lifetime;
+  vector<Point2f> prev_matched_cam0_points;
+  vector<Point2f> prev_matched_cam1_points;
+  vector<Point2f> curr_matched_cam0_points;
+  vector<Point2f> curr_matched_cam1_points;
 
   removeUnmarkedElements(
       prev_tracked_ids, match_inliers, prev_matched_ids);
@@ -547,13 +545,13 @@ void ImageProcessor::trackFeatures() {
   after_matching = curr_matched_cam0_points.size();
 
   // Step 2 and 3: RANSAC on temporal image pairs of cam0 and cam1.
-  vector<int> cam0_ransac_inliers(0);
+  vector<int> cam0_ransac_inliers;
   twoPointRansac(prev_matched_cam0_points, curr_matched_cam0_points,
       cam0_R_p_c, cam0_intrinsics, cam0_distortion_model,
       cam0_distortion_coeffs, processor_config.ransac_threshold,
       0.99, cam0_ransac_inliers);
 
-  vector<int> cam1_ransac_inliers(0);
+  vector<int> cam1_ransac_inliers;
   twoPointRansac(prev_matched_cam1_points, curr_matched_cam1_points,
       cam1_R_p_c, cam1_intrinsics, cam1_distortion_model,
       cam1_distortion_coeffs, processor_config.ransac_threshold,
@@ -610,7 +608,8 @@ void ImageProcessor::stereoMatch(
     const vector<cv::Point2f>& cam0_points,
     vector<cv::Point2f>& cam1_points,
     vector<unsigned char>& inlier_markers) {
-
+  // Obtain cam1_points from cam0_points based on LK optical flow.
+  // and remove outliers based on Essential matrix.
   if (cam0_points.size() == 0) return;
 
   if(cam1_points.size() == 0) {
@@ -660,8 +659,8 @@ void ImageProcessor::stereoMatch(
 
   // Further remove outliers based on the known
   // essential matrix.
-  vector<cv::Point2f> cam0_points_undistorted(0);
-  vector<cv::Point2f> cam1_points_undistorted(0);
+  vector<cv::Point2f> cam0_points_undistorted;
+  vector<cv::Point2f> cam1_points_undistorted;
   undistortPoints(
       cam0_points, cam0_intrinsics, cam0_distortion_model,
       cam0_distortion_coeffs, cam0_points_undistorted);
@@ -669,7 +668,7 @@ void ImageProcessor::stereoMatch(
       cam1_points, cam1_intrinsics, cam1_distortion_model,
       cam1_distortion_coeffs, cam1_points_undistorted);
 
-  double norm_pixel_unit = 4.0 / (
+  const double norm_pixel_unit = 4.0 / (
       cam0_intrinsics[0]+cam0_intrinsics[1]+
       cam1_intrinsics[0]+cam1_intrinsics[1]);
 
@@ -686,17 +685,15 @@ void ImageProcessor::stereoMatch(
     if (error > processor_config.stereo_threshold*norm_pixel_unit)
       inlier_markers[i] = 0;
   }
-
-  return;
 }
 
 void ImageProcessor::addNewFeatures() {
   const Mat& curr_img = cam0_curr_img_ptr->image;
 
   // Size of each grid.
-  static int grid_height =
+  const int grid_height =
     cam0_curr_img_ptr->image.rows / processor_config.grid_row;
-  static int grid_width =
+  const int grid_width =
     cam0_curr_img_ptr->image.cols / processor_config.grid_col;
 
   // Create a mask to avoid redetecting existing features.
@@ -721,18 +718,18 @@ void ImageProcessor::addNewFeatures() {
   }
 
   // Detect new features.
-  vector<KeyPoint> new_features(0);
+  vector<KeyPoint> new_features;
   detector_ptr->detect(curr_img, new_features, mask);
 
   // Collect the new detected features based on the grid.
   // Select the ones with top response within each grid afterwards.
   vector<vector<KeyPoint> > new_feature_sieve(
-      processor_config.grid_row*processor_config.grid_col);
+      processor_config.grid_row * processor_config.grid_col);
+
   for (const auto& feature : new_features) {
-    int row = static_cast<int>(feature.pt.y / grid_height);
-    int col = static_cast<int>(feature.pt.x / grid_width);
-    new_feature_sieve[
-      row*processor_config.grid_col+col].push_back(feature);
+    const int row = static_cast<int>(feature.pt.y / grid_height);
+    const int col = static_cast<int>(feature.pt.x / grid_width);
+    new_feature_sieve[row * processor_config.grid_col + col].push_back(feature);
   }
 
   new_features.clear();
@@ -746,7 +743,7 @@ void ImageProcessor::addNewFeatures() {
     new_features.insert(new_features.end(), item.begin(), item.end());
   }
 
-  int detected_new_features = new_features.size();
+  const int detected_new_features = new_features.size();
 
   // Find the stereo matched points for the newly
   // detected features.
@@ -754,13 +751,13 @@ void ImageProcessor::addNewFeatures() {
   for (int i = 0; i < new_features.size(); ++i)
     cam0_points[i] = new_features[i].pt;
 
-  vector<cv::Point2f> cam1_points(0);
-  vector<unsigned char> inlier_markers(0);
+  vector<cv::Point2f> cam1_points;
+  vector<unsigned char> inlier_markers;
   stereoMatch(cam0_points, cam1_points, inlier_markers);
 
-  vector<cv::Point2f> cam0_inliers(0);
-  vector<cv::Point2f> cam1_inliers(0);
-  vector<float> response_inliers(0);
+  vector<cv::Point2f> cam0_inliers;
+  vector<cv::Point2f> cam1_inliers;
+  vector<float> response_inliers;
   for (int i = 0; i < inlier_markers.size(); ++i) {
     if (inlier_markers[i] == 0) continue;
     cam0_inliers.push_back(cam0_points[i]);
@@ -768,7 +765,7 @@ void ImageProcessor::addNewFeatures() {
     response_inliers.push_back(new_features[i].response);
   }
 
-  int matched_new_features = cam0_inliers.size();
+  const int matched_new_features = cam0_inliers.size();
 
   if (matched_new_features < 5 &&
       static_cast<double>(matched_new_features)/
@@ -780,16 +777,16 @@ void ImageProcessor::addNewFeatures() {
   GridFeatures grid_new_features;
   for (int code = 0; code <
       processor_config.grid_row*processor_config.grid_col; ++code)
-      grid_new_features[code] = vector<FeatureMetaData>(0);
+      grid_new_features[code] = vector<FeatureMetaData>();
 
   for (int i = 0; i < cam0_inliers.size(); ++i) {
     const cv::Point2f& cam0_point = cam0_inliers[i];
     const cv::Point2f& cam1_point = cam1_inliers[i];
-    const float& response = response_inliers[i];
+    const float response = response_inliers[i];
 
-    int row = static_cast<int>(cam0_point.y / grid_height);
-    int col = static_cast<int>(cam0_point.x / grid_width);
-    int code = row*processor_config.grid_col + col;
+    const int row = static_cast<int>(cam0_point.y / grid_height);
+    const int col = static_cast<int>(cam0_point.x / grid_width);
+    const int code = row * processor_config.grid_col + col;
 
     FeatureMetaData new_feature;
     new_feature.response = response;
@@ -813,7 +810,7 @@ void ImageProcessor::addNewFeatures() {
     if (features_this_grid.size() >=
         processor_config.grid_min_feature_num) continue;
 
-    int vacancy_num = processor_config.grid_min_feature_num -
+    const int vacancy_num = processor_config.grid_min_feature_num -
       features_this_grid.size();
     for (int k = 0;
         k < vacancy_num && k < new_features_this_grid.size(); ++k) {
@@ -946,14 +943,17 @@ void ImageProcessor::integrateImuData(
 
   // Transform the mean angular velocity from the IMU
   // frame to the cam0 and cam1 frames.
-  Vec3f cam0_mean_ang_vel = R_cam0_imu.t() * mean_ang_vel;
-  Vec3f cam1_mean_ang_vel = R_cam1_imu.t() * mean_ang_vel;
+  const Vec3f cam0_mean_ang_vel = R_cam0_imu.t() * mean_ang_vel;
+  const Vec3f cam1_mean_ang_vel = R_cam1_imu.t() * mean_ang_vel;
 
   // Compute the relative rotation.
-  double dtime = (cam0_curr_img_ptr->header.stamp-
+  const double dtime = (cam0_curr_img_ptr->header.stamp-
       cam0_prev_img_ptr->header.stamp).toSec();
   Rodrigues(cam0_mean_ang_vel*dtime, cam0_R_p_c);
   Rodrigues(cam1_mean_ang_vel*dtime, cam1_R_p_c);
+  // The angular velocity you computed from the IMU (expressed in IMU body frame.) 
+  // is probably expressed as current frame’s rotation relative to previous.
+  // We need previous to current frame's rotation.
   cam0_R_p_c = cam0_R_p_c.t();
   cam1_R_p_c = cam1_R_p_c.t();
 
@@ -962,26 +962,37 @@ void ImageProcessor::integrateImuData(
   return;
 }
 
+// Rescale two sets of points so their average distance from the origin
+// is equal to sqrt(2). This normalization improves numerical stability
+// for later computations (e.g., in RANSAC or solving linear systems).
 void ImageProcessor::rescalePoints(
-    vector<Point2f>& pts1, vector<Point2f>& pts2,
-    float& scaling_factor) {
+    std::vector<cv::Point2f>& pts1, 
+    std::vector<cv::Point2f>& pts2,
+    float& scaling_factor) 
+{
+    // 1. Accumulate the total magnitude (distance from origin) of all points
+    double total_length = 0.0; // using double for intermediate precision
 
-  scaling_factor = 0.0f;
+    for (size_t i = 0; i < pts1.size(); ++i) {
+        total_length += std::sqrt(pts1[i].dot(pts1[i])); // |pts1[i]|
+        total_length += std::sqrt(pts2[i].dot(pts2[i])); // |pts2[i]|
+    }
 
-  for (int i = 0; i < pts1.size(); ++i) {
-    scaling_factor += sqrt(pts1[i].dot(pts1[i]));
-    scaling_factor += sqrt(pts2[i].dot(pts2[i]));
-  }
+    // 2. Calculate the average distance of all points from the origin
+    const size_t total_points = pts1.size() + pts2.size();
+    const double mean_length = total_length / static_cast<double>(total_points);
 
-  scaling_factor = (pts1.size()+pts2.size()) /
-    scaling_factor * sqrt(2.0f);
+    // 3. Determine scale factor so that the new average distance = sqrt(2)
+    //    Scaling factor = desired_length / current_mean_length
+    scaling_factor = static_cast<float>(std::sqrt(2.0) / mean_length);
 
-  for (int i = 0; i < pts1.size(); ++i) {
-    pts1[i] *= scaling_factor;
-    pts2[i] *= scaling_factor;
-  }
+    // 4. Apply the scaling to all points
+    for (size_t i = 0; i < pts1.size(); ++i) {
+        pts1[i] *= scaling_factor;
+        pts2[i] *= scaling_factor;
+    }
 
-  return;
+    // scaling_factor is returned via the reference parameter
 }
 
 void ImageProcessor::twoPointRansac(
@@ -989,8 +1000,8 @@ void ImageProcessor::twoPointRansac(
     const cv::Matx33f& R_p_c, const cv::Vec4d& intrinsics,
     const std::string& distortion_model,
     const cv::Vec4d& distortion_coeffs,
-    const double& inlier_error,
-    const double& success_probability,
+    double inlier_error,
+    double success_probability,
     vector<int>& inlier_markers) {
 
   // Check the size of input point size.
@@ -998,12 +1009,13 @@ void ImageProcessor::twoPointRansac(
     ROS_ERROR("Sets of different size (%lu and %lu) are used...",
         pts1.size(), pts2.size());
 
-  double norm_pixel_unit = 2.0 / (intrinsics[0]+intrinsics[1]);
-  int iter_num = static_cast<int>(
-      ceil(log(1-success_probability) / log(1-0.7*0.7)));
+  double norm_pixel_unit = 2.0 / (intrinsics[0] + intrinsics[1]);
+  // k = ln(1 - p) / ln(1 - w^n). n is the minimum number of points to fit
+  // the model. n = 2 here.
+  const int iter_num = static_cast<int>(
+      ceil(log(1 - success_probability) / log(1 - 0.7 * 0.7)));
 
   // Initially, mark all points as inliers.
-  inlier_markers.clear();
   inlier_markers.resize(pts1.size(), 1);
 
   // Undistort all the points.
@@ -1020,7 +1032,6 @@ void ImageProcessor::twoPointRansac(
   // the relative rotation.
   for (auto& pt : pts1_undistorted) {
     Vec3f pt_h(pt.x, pt.y, 1.0f);
-    //Vec3f pt_hc = dR * pt_h;
     Vec3f pt_hc = R_p_c * pt_h;
     pt.x = pt_hc[0];
     pt.y = pt_hc[1];
@@ -1043,11 +1054,11 @@ void ImageProcessor::twoPointRansac(
   double mean_pt_distance = 0.0;
   int raw_inlier_cntr = 0;
   for (int i = 0; i < pts_diff.size(); ++i) {
-    double distance = sqrt(pts_diff[i].dot(pts_diff[i]));
+    const double distance = sqrt(pts_diff[i].dot(pts_diff[i]));
     // 25 pixel distance is a pretty large tolerance for normal motion.
     // However, to be used with aggressive motion, this tolerance should
     // be increased significantly to match the usage.
-    if (distance > 50.0*norm_pixel_unit) {
+    if (distance > 50.0 * norm_pixel_unit) {
       inlier_markers[i] = 0;
     } else {
       mean_pt_distance += distance;
@@ -1069,7 +1080,11 @@ void ImageProcessor::twoPointRansac(
   // the frames, in which case, the model of the RANSAC does not
   // work. If so, the distance between the matched points will
   // be almost 0.
-  //if (mean_pt_distance < inlier_error*norm_pixel_unit) {
+  /*
+  In the degenerate case, this means:
+  We keep only points whose displacement is close to zero within tolerance.
+  Larger motion points are considered mismatches. 
+  */
   if (mean_pt_distance < norm_pixel_unit) {
     //ROS_WARN_THROTTLE(1.0, "Degenerated motion...");
     for (int i = 0; i < pts_diff.size(); ++i) {
@@ -1080,6 +1095,38 @@ void ImageProcessor::twoPointRansac(
     }
     return;
   }
+
+  /*
+  For pure translation (after rotation compensation), the epipolar constraint simplifies to:
+
+  t ⋅ (P1 × P2) = 0
+  Where:
+
+  t = (tx, ty, tz) is the translation vector.
+  × is the vector cross product in 3D normalized coordinates.
+  Since P1 = (x1, y1, 1) and P2 = (x2, y2, 1), we compute:
+
+  Cross product P1 × P2:
+
+  P1 × P2 = (y1 - y2,   -(x1 - x2),   x1*y2 - y1*x2)
+
+  The epipolar constraint says:
+
+  tx * (y1 - y2)  +  ty * (-(x1 - x2))  +  tz * (x1*y2 - y1*x2)  =  0
+  This is linear in tx, ty, tz.
+
+  If we define:
+
+  text
+  3 lines
+
+  coeff_tx = y1 - y2
+  coeff_ty = -(x1 - x2)
+  coeff_tz = x1*y2 - y1*x2
+  then the per-point equation is:
+
+  coeff_tx * tx + coeff_ty * ty + coeff_tz * tz = 0
+  */
 
   // In the case of general motion, the RANSAC model can be applied.
   // The three column corresponds to tx, ty, and tz respectively.
@@ -1105,27 +1152,48 @@ void ImageProcessor::twoPointRansac(
     // Randomly select two point pairs.
     // Although this is a weird way of selecting two pairs, but it
     // is able to efficiently avoid selecting repetitive pairs.
-    int select_idx1 = random_gen.uniformInteger(
+    const int select_idx1 = random_gen.uniformInteger(
         0, raw_inlier_idx.size()-1);
-    int select_idx_diff = random_gen.uniformInteger(
+    const int select_idx_diff = random_gen.uniformInteger(
         1, raw_inlier_idx.size()-1);
-    int select_idx2 = select_idx1+select_idx_diff<raw_inlier_idx.size() ?
+    const int select_idx2 = select_idx1 + select_idx_diff < raw_inlier_idx.size() ?
       select_idx1+select_idx_diff :
-      select_idx1+select_idx_diff-raw_inlier_idx.size();
+      select_idx1+select_idx_diff - raw_inlier_idx.size();
 
-    int pair_idx1 = raw_inlier_idx[select_idx1];
-    int pair_idx2 = raw_inlier_idx[select_idx2];
+    const int pair_idx1 = raw_inlier_idx[select_idx1];
+    const int pair_idx2 = raw_inlier_idx[select_idx2];
 
     // Construct the model;
     Vector2d coeff_tx(coeff_t(pair_idx1, 0), coeff_t(pair_idx2, 0));
     Vector2d coeff_ty(coeff_t(pair_idx1, 1), coeff_t(pair_idx2, 1));
     Vector2d coeff_tz(coeff_t(pair_idx1, 2), coeff_t(pair_idx2, 2));
+
+    /*
+    Math reason: We always get a homogeneous system with infinite scale solutions. To solve uniquely, we fix one variable to 1.0.
+    Picking the one with smallest L1 norm avoids instability due to dividing by tiny numbers in the solver.
+    */
+
     vector<double> coeff_l1_norm(3);
     coeff_l1_norm[0] = coeff_tx.lpNorm<1>();
     coeff_l1_norm[1] = coeff_ty.lpNorm<1>();
     coeff_l1_norm[2] = coeff_tz.lpNorm<1>();
-    int base_indicator = min_element(coeff_l1_norm.begin(),
-        coeff_l1_norm.end())-coeff_l1_norm.begin();
+    const int base_indicator = min_element(coeff_l1_norm.begin(),
+        coeff_l1_norm.end()) - coeff_l1_norm.begin();
+
+    /*
+    Math note:
+
+    For tx = 1 case, system looks like:
+
+    text
+    2 lines
+
+    ty * c1y + tz * c1z = -c1x
+    ty * c2y + tz * c2z = -c2x
+    We solve for (ty, tz) using standard 2×2 inversion.
+
+    Same logic applies to ty or tz base cases.
+    */
 
     Vector3d model(0.0, 0.0, 0.0);
     if (base_indicator == 0) {
@@ -1152,7 +1220,7 @@ void ImageProcessor::twoPointRansac(
     }
 
     // Find all the inliers among point pairs.
-    VectorXd error = coeff_t * model;
+    const VectorXd error = coeff_t * model;
 
     vector<int> inlier_set;
     for (int i = 0; i < error.rows(); ++i) {
@@ -1163,7 +1231,7 @@ void ImageProcessor::twoPointRansac(
 
     // If the number of inliers is small, the current
     // model is probably wrong.
-    if (inlier_set.size() < 0.2*pts1_undistorted.size())
+    if (inlier_set.size() < 0.2 * pts1_undistorted.size())
       continue;
 
     // Refit the model using all of the possible inliers.
@@ -1185,7 +1253,7 @@ void ImageProcessor::twoPointRansac(
       model_better(0) = 1.0;
       model_better(1) = solution(0);
       model_better(2) = solution(1);
-    } else if (base_indicator ==1) {
+    } else if (base_indicator == 1) {
       MatrixXd A(inlier_set.size(), 2);
       A << coeff_tx_better, coeff_tz_better;
       Vector2d solution =
@@ -1235,9 +1303,9 @@ void ImageProcessor::publish() {
   CameraMeasurementPtr feature_msg_ptr(new CameraMeasurement);
   feature_msg_ptr->header.stamp = cam0_curr_img_ptr->header.stamp;
 
-  vector<FeatureIDType> curr_ids(0);
-  vector<Point2f> curr_cam0_points(0);
-  vector<Point2f> curr_cam1_points(0);
+  vector<FeatureIDType> curr_ids;
+  vector<Point2f> curr_cam0_points;
+  vector<Point2f> curr_cam1_points;
 
   for (const auto& grid_features : (*curr_features_ptr)) {
     for (const auto& feature : grid_features.second) {
@@ -1247,8 +1315,8 @@ void ImageProcessor::publish() {
     }
   }
 
-  vector<Point2f> curr_cam0_points_undistorted(0);
-  vector<Point2f> curr_cam1_points_undistorted(0);
+  vector<Point2f> curr_cam0_points_undistorted;
+  vector<Point2f> curr_cam1_points_undistorted;
 
   undistortPoints(
       curr_cam0_points, cam0_intrinsics, cam0_distortion_model,
@@ -1352,20 +1420,19 @@ void ImageProcessor::drawFeaturesMono() {
 
 void ImageProcessor::drawFeaturesStereo() {
 
-  if(debug_stereo_pub.getNumSubscribers() > 0)
-  {
+  if(debug_stereo_pub.getNumSubscribers() > 0) {
     // Colors for different features.
     Scalar tracked(0, 255, 0);
     Scalar new_feature(0, 255, 255);
 
-    static int grid_height =
+    const int grid_height =
       cam0_curr_img_ptr->image.rows / processor_config.grid_row;
-    static int grid_width =
+    const int grid_width =
       cam0_curr_img_ptr->image.cols / processor_config.grid_col;
 
     // Create an output image.
-    int img_height = cam0_curr_img_ptr->image.rows;
-    int img_width = cam0_curr_img_ptr->image.cols;
+    const int img_height = cam0_curr_img_ptr->image.rows;
+    const int img_width = cam0_curr_img_ptr->image.cols;
     Mat out_img(img_height, img_width*2, CV_8UC3);
     cvtColor(cam0_curr_img_ptr->image,
              out_img.colRange(0, img_width), CV_GRAY2RGB);
@@ -1374,23 +1441,23 @@ void ImageProcessor::drawFeaturesStereo() {
 
     // Draw grids on the image.
     for (int i = 1; i < processor_config.grid_row; ++i) {
-      Point pt1(0, i*grid_height);
-      Point pt2(img_width*2, i*grid_height);
+      const Point pt1(0, i * grid_height);
+      const Point pt2(img_width * 2, i * grid_height);
       line(out_img, pt1, pt2, Scalar(255, 0, 0));
     }
     for (int i = 1; i < processor_config.grid_col; ++i) {
-      Point pt1(i*grid_width, 0);
-      Point pt2(i*grid_width, img_height);
+      const Point pt1(i * grid_width, 0);
+      const Point pt2(i * grid_width, img_height);
       line(out_img, pt1, pt2, Scalar(255, 0, 0));
     }
     for (int i = 1; i < processor_config.grid_col; ++i) {
-      Point pt1(i*grid_width+img_width, 0);
-      Point pt2(i*grid_width+img_width, img_height);
+      const Point pt1(i * grid_width + img_width, 0);
+      const Point pt2(i * grid_width + img_width, img_height);
       line(out_img, pt1, pt2, Scalar(255, 0, 0));
     }
 
     // Collect features ids in the previous frame.
-    vector<FeatureIDType> prev_ids(0);
+    vector<FeatureIDType> prev_ids;
     for (const auto& grid_features : *prev_features_ptr)
       for (const auto& feature : grid_features.second)
         prev_ids.push_back(feature.id);
@@ -1436,8 +1503,8 @@ void ImageProcessor::drawFeaturesStereo() {
 
     // Draw new features.
     for (const auto& new_cam0_point : curr_cam0_points) {
-      cv::Point2f pt0 = new_cam0_point.second;
-      cv::Point2f pt1 = curr_cam1_points[new_cam0_point.first] +
+      const cv::Point2f& pt0 = new_cam0_point.second;
+      const cv::Point2f pt1 = curr_cam1_points[new_cam0_point.first] +
         Point2f(img_width, 0.0);
 
       circle(out_img, pt0, 3, new_feature, -1);
@@ -1449,8 +1516,6 @@ void ImageProcessor::drawFeaturesStereo() {
   }
   //imshow("Feature", out_img);
   //waitKey(5);
-
-  return;
 }
 
 void ImageProcessor::updateFeatureLifetime() {

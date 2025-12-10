@@ -260,9 +260,10 @@ private:
       const cv::Vec4d& intrinsics,
       const std::string& distortion_model,
       const cv::Vec4d& distortion_coeffs,
-      const double& inlier_error,
-      const double& success_probability,
+      double inlier_error,
+      double success_probability,
       std::vector<int>& inlier_markers);
+
   void undistortPoints(
       const std::vector<cv::Point2f>& pts_in,
       const cv::Vec4d& intrinsics,
@@ -271,10 +272,12 @@ private:
       std::vector<cv::Point2f>& pts_out,
       const cv::Matx33d &rectification_matrix = cv::Matx33d::eye(),
       const cv::Vec4d &new_intrinsics = cv::Vec4d(1,1,0,0));
+
   void rescalePoints(
       std::vector<cv::Point2f>& pts1,
       std::vector<cv::Point2f>& pts2,
       float& scaling_factor);
+
   std::vector<cv::Point2f> distortPoints(
       const std::vector<cv::Point2f>& pts_in,
       const cv::Vec4d& intrinsics,

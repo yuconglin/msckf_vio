@@ -130,7 +130,7 @@ class MsckfVio {
     // Propogate the state
     void batchImuProcessing(
         const double& time_bound);
-    void processModel(const double& time,
+    void processModel(double time,
         const Eigen::Vector3d& m_gyro,
         const Eigen::Vector3d& m_acc);
     void predictNewState(const double& dt,

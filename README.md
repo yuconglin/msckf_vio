@@ -24,6 +24,8 @@ sudo apt-get install libsuitesparse-dev
 The software is a standard catkin package. Make sure the package is on `ROS_PACKAGE_PATH` after cloning the package to your workspace. And the normal procedure for compiling a catkin package should work.
 
 ```
+sudo apt install ros-noetic-random-numbers
+
 cd your_work_space
 catkin_make --pkg msckf_vio --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
