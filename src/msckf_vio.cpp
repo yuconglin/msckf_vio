@@ -597,6 +597,7 @@ void MsckfVio::processModel(double time,
   predictNewState(dtime, gyro, acc);
 
   // Modify the transition matrix for Observability
+  // based on Consistency Analysis and Improvement of Vision-aided Inertial Navigation.
   /*
   orientation_null is the IMU orientation from the last propagation (nullspace reference).
   This replaces the upper-left 3×3 block of Phi (rotation error → rotation error) with a rotation difference between current and null orientation.
@@ -611,6 +612,7 @@ void MsckfVio::processModel(double time,
   u = gravity vector in null frame coordinates.
   s = something like a projection vector — it's (uᵀ u)⁻¹ uᵀ, which is a row vector that will project along the gravity direction.
   */
+  // equation (61) and (64) of the paper.
   Vector3d u = R_kk_1 * IMUState::gravity;
   RowVector3d s = (u.transpose()*u).inverse() * u.transpose();
   
@@ -633,6 +635,7 @@ void MsckfVio::processModel(double time,
   w2 is skew(Δpos) * gravity, with Δpos including the velocity term over dtime.
   Same idea: adjusting to respect unobservable directions.
   */
+  // equation (62) corrected based on equation (58)
   Matrix3d A2 = Phi.block<3, 3>(12, 0);
   Vector3d w2 = skewSymmetric(
       dtime*imu_state.velocity_null+imu_state.position_null-
@@ -924,7 +927,8 @@ void MsckfVio::measurementJacobian(
   // Modifty the measurement Jacobian to ensure
   // observability constrain.
   // Please refer to:
-  // High-Precision, Consistent EKF-based Visual-Inertial Odometry
+  // Consistency Analysis and Improvement of Vision-aided Inertial Navigation
+  // equation (70) - (74).
   Matrix<double, 4, 6> A = H_x;
   Matrix<double, 6, 1> u = Matrix<double, 6, 1>::Zero();
   u.block<3, 1>(0, 0) = quaternionToRotation(
